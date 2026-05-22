@@ -1,0 +1,141 @@
+{
+  "expo": {
+    "name": "Nagaland AI",
+    "slug": "nagaland-ai",
+    "version": "1.2.1",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": false,
+    "scheme": "nagalandai",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F2419"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nagalandme.nagalandai",
+      "buildNumber": "4",
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Nagaland AI needs camera access for uploading photos to the AI chat and expert profiles.",
+        "NSPhotoLibraryUsageDescription": "Nagaland AI needs photo library access to upload images.",
+        "NSMicrophoneUsageDescription": "Nagaland AI needs microphone access for voice-based learning features.",
+        "NSLocationWhenInUseUsageDescription": "Nagaland AI needs your location to track the school bus route while you are driving.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Nagaland AI needs background location access to keep tracking the school bus route so parents can see live updates.",
+        "NSLocationAlwaysUsageDescription": "Nagaland AI needs background location access for school bus tracking.",
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": ["remote-notification", "location"],
+        "LSApplicationQueriesSchemes": [
+          "whatsapp", "tel", "mailto",
+          "upi", "razorpay", "paytm", "gpay", "phonepe",
+          "itms-apps", "itms-appss",
+          "maps", "comgooglemaps"
+        ]
+      },
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "associatedDomains": [
+        "applinks:nagalandai.com",
+        "applinks:experts.nagaland.me",
+        "applinks:helpnagaland.com",
+        "applinks:nagalandprofiles.com",
+        "applinks:nagalanddictionary.com",
+        "applinks:nagalandnewstoday.com"
+      ]
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F2419"
+      },
+      "package": "com.nagalandme.nagalandai",
+      "versionCode": 4,
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "POST_NOTIFICATIONS"
+      ],
+      "softwareKeyboardLayoutMode": "pan",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            { "scheme": "https", "host": "nagalandai.com", "pathPrefix": "/" },
+            { "scheme": "https", "host": "experts.nagaland.me", "pathPrefix": "/" },
+            { "scheme": "https", "host": "helpnagaland.com", "pathPrefix": "/" },
+            { "scheme": "https", "host": "nagalandprofiles.com", "pathPrefix": "/" },
+            { "scheme": "https", "host": "nagalanddictionary.com", "pathPrefix": "/" },
+            { "scheme": "https", "host": "nagalandnewstoday.com", "pathPrefix": "/" }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#10B981",
+          "defaultChannel": "general",
+          "sounds": [
+            "./assets/sounds/absent_alert.wav",
+            "./assets/sounds/emergency_alarm.wav",
+            "./assets/sounds/holiday_chime.wav",
+            "./assets/sounds/order_received.wav"
+          ]
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Nagaland AI needs background location to track school bus routes so parents can see live updates.",
+          "locationAlwaysPermission": "Nagaland AI needs background location to track school bus routes.",
+          "locationWhenInUsePermission": "Nagaland AI needs your location to track the school bus route while driving.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      "@react-native-firebase/app",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          },
+          "android": {
+            "enableMinifyInReleaseBuilds": true
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "deviceTokenSecret": "",
+      "eas": {
+        "projectId": "REPLACE_AFTER_FIRST_EAS_BUILD_INIT"
+      }
+    },
+    "owner": "nagalandme",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    }
+  }
+}
