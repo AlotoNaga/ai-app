@@ -89,14 +89,35 @@ panel, and offline handling.
    6. Open App Switcher → "Driver Mode" — login form (test creds below).
    7. Open App Switcher → "Attendance" — login + mark a test class.
 
-   Test credentials
+   Test credentials  (FILL THESE IN BEFORE SUBMITTING — see checklist below)
    - AI Chat / Experts / Help / Profiles / Dictionary / News:  no login
    - Student Mode: pick subject + grade on the AI Chat home page
-   - Schools (parent code): contact info@nagalandai.com
-   - Driver Mode (school account): contact info@nagalandai.com
-   - Attendance (teacher account): contact info@nagalandai.com
+   - Schools (parent view):
+       Parent code:    <FILL IN — e.g. NAGA-DEMO-PARENT-001>
+   - Driver Mode (bus driver):
+       Username:       <FILL IN — e.g. demo_driver>
+       Password:       <FILL IN>
+       Assigned bus:   Demo Bus (route: Dimapur → Kohima)
+   - Attendance (teacher):
+       Username:       <FILL IN — e.g. demo_teacher>
+       Password:       <FILL IN>
+       Class:          Demo Class 5A (5 demo students)
 
-   To verify live bus tracking, sign in with a Driver test account, tap
-   "Start Trip", and grant Always Location. After a few seconds the
-   GPS Pings counter increases — that confirms the background task is
-   posting to the school backend.
+   To verify live bus tracking, sign in with the Driver test account
+   above, tap "Start Trip", and grant Always Location. After a few
+   seconds the GPS Pings counter increases — that confirms the
+   background task is posting to the school backend.
+
+## PRE-SUBMISSION CHECKLIST (DO NOT SUBMIT WITHOUT)
+   [ ] Create three test accounts on schools.nagalandai.com:
+       - one parent (with a child + parent code)
+       - one driver (assigned to a demo bus + route)
+       - one teacher (with a class of ~5 demo students)
+   [ ] Replace every <FILL IN> placeholder above with the real
+       credentials. Apple Guideline 2.1 requires functional demo
+       credentials in the reviewer notes — "contact support" is a
+       guaranteed rejection.
+   [ ] Paste the FINAL filled-in version of this file into App Store
+       Connect → App Review Information → Notes (reviewer-only field;
+       not visible to end users).
+   [ ] After approval, rotate the demo passwords.
