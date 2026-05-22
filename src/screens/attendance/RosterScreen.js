@@ -54,34 +54,44 @@ function nextStatus(current) {
 export default function RosterScreen({ classRow, subject, onBack, onSaved, onSessionExpired }) {
   const insets = useSafeAreaInsets();
   const [students, setStudents]   = useState(null);  // null = loading
+  const [loadError, setLoadError] = useState(null);  // non-null = roster load failed
   // marks: { [studentId]: 'present' | 'absent' | 'late' }
   const [marks, setMarks]         = useState({});
   const [remarks, setRemarks]     = useState({}); // { [studentId]: string }
   const [saving, setSaving]       = useState(false);
   const [showRemarkFor, setShowRemarkFor] = useState(null);
   const date = useMemo(() => todayString(), []);
+  const subjectId = subject?.id ?? null;
 
-  // Initial load — pull students + any pre-existing marks for today.
-  useEffect(() => {
-    (async () => {
-      try {
-        const [stud, existing] = await Promise.all([
-          listStudents(classRow.id),
-          getAttendanceFor({ classId: classRow.id, subjectId: subject?.id ?? null, date }),
-        ]);
-        setStudents(stud);
-        const mk = {}, rm = {};
-        for (const r of existing) {
-          mk[r.student_id] = r.status;
-          if (r.remarks) rm[r.student_id] = r.remarks;
-        }
-        setMarks(mk);
-        setRemarks(rm);
-      } catch {
-        setStudents([]);
+  const loadRoster = useCallback(async () => {
+    setStudents(null);
+    setLoadError(null);
+    try {
+      const [stud, existing] = await Promise.all([
+        listStudents(classRow.id),
+        getAttendanceFor({ classId: classRow.id, subjectId, date }),
+      ]);
+      const mk = {}, rm = {};
+      for (const r of existing) {
+        mk[r.student_id] = r.status;
+        if (r.remarks) rm[r.student_id] = r.remarks;
       }
-    })();
-  }, [classRow.id, subject, date]);
+      setMarks(mk);
+      setRemarks(rm);
+      setStudents(stud);
+    } catch (e) {
+      // Surface the error rather than pretending the class is empty. A
+      // silent setStudents([]) used to render the "no students" empty
+      // state, leading teachers to assume admin had removed the roster.
+      setLoadError(e?.message || 'Could not load students.');
+      setStudents([]);
+    }
+  }, [classRow.id, subjectId, date]);
+
+  // subjectId / classRow.id / date are scalars so the effect re-fires only
+  // on real changes — not on every parent re-render the way the previous
+  // `subject` (object) dep did.
+  useEffect(() => { loadRoster(); }, [loadRoster]);
 
   const setMark = useCallback((studentId, status) => {
     setMarks((prev) => ({ ...prev, [studentId]: status }));
@@ -279,6 +289,19 @@ export default function RosterScreen({ classRow, subject, onBack, onSaved, onSes
         <View style={s.centered}>
           <ActivityIndicator color={COLORS.primary} />
           <Text style={s.loadingLabel}>Loading students…</Text>
+        </View>
+      ) : loadError ? (
+        <View style={s.centered}>
+          <Ionicons name="alert-circle-outline" size={48} color={COLORS.danger} />
+          <Text style={[s.emptyText, { marginTop: 12 }]}>Could not load students.</Text>
+          <Text style={[s.emptyText, { marginTop: 6, fontSize: 13 }]}>{loadError}</Text>
+          <TouchableOpacity
+            onPress={loadRoster}
+            style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: COLORS.primary }}
+            accessibilityLabel="Retry loading students"
+          >
+            <Text style={{ color: '#FFF', fontWeight: '700' }}>Retry</Text>
+          </TouchableOpacity>
         </View>
       ) : students.length === 0 ? (
         <View style={s.centered}>
