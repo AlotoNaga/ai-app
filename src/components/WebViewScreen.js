@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import { View, StyleSheet, BackHandler, Platform, ActivityIndicator } from 'react-native';
 import { WebView } from 'react-native-webview';
 import * as Linking from 'expo-linking';
@@ -64,6 +64,12 @@ export default function WebViewScreen({ url, onNavigationStateChange }) {
   const [isOnline, setIsOnline]   = useState(true);
   const [hasError, setHasError]   = useState(false);
 
+  // Refuse to load any URL whose host is not in INTERNAL_DOMAINS. The
+  // `onShouldStartLoadWithRequest` guard only fires on subsequent navigations,
+  // so a bad `url` prop (push payload, deep link, future caller) would
+  // otherwise load before the guard could reject it.
+  const urlAllowed = useMemo(() => isInternalDomain(url), [url]);
+
   useEffect(() => {
     const unsub = NetInfo.addEventListener((state) => {
       const online = state.isConnected && state.isInternetReachable !== false;
@@ -92,7 +98,13 @@ export default function WebViewScreen({ url, onNavigationStateChange }) {
 
   const handleShouldStartLoadWithRequest = useCallback((request) => {
     const { url: reqUrl } = request;
-    if (reqUrl.startsWith('about:') || reqUrl.startsWith('javascript:')) return true;
+
+    // about:blank is benign (used by the WebView lifecycle); other about:* URIs
+    // and any javascript: URI can run script in our trusted origin and read
+    // WordPress session cookies. Our own page-injection runs via
+    // `injectedJavaScript`, never via URL navigation — so reject both.
+    if (reqUrl === 'about:blank') return true;
+    if (reqUrl.startsWith('about:') || reqUrl.startsWith('javascript:')) return false;
 
     // Razorpay handles its own checkout — keep it inside the WebView.
     if (reqUrl.includes('api.razorpay.com') || reqUrl.includes('razorpay.com/checkout')) {
@@ -132,6 +144,15 @@ export default function WebViewScreen({ url, onNavigationStateChange }) {
     setIsLoading(true);
     webViewRef.current?.reload?.();
   }, []);
+
+  if (!urlAllowed) {
+    return (
+      <OfflineScreen
+        onRetry={handleRetry}
+        message="This link can't be opened inside the app."
+      />
+    );
+  }
 
   if (!isOnline || hasError) {
     return (
