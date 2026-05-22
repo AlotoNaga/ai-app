@@ -245,6 +245,7 @@ export const STORAGE_KEYS = {
   TRIP_ACTIVE: '@nai_trip_active',
   TRIP_ID: '@nai_trip_id',
   PING_COUNT: '@nai_ping_count',
+  PING_QUEUE: '@nai_ping_queue',
   LAST_PING_ERROR: '@nai_last_ping_error',
   // Attendance — session blob (cookie + nonce + teacher info) lives in SecureStore
   TEACHER_SESSION: '@nai_teacher_session',
