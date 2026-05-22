@@ -4,6 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, STORAGE_KEYS } from '../config/constants';
+import { reportError } from '../services/crashReporter';
 
 const { width } = Dimensions.get('window');
 
@@ -52,7 +53,14 @@ export default function OnboardingScreen({ onComplete }) {
   };
 
   const handleDone = async () => {
-    try { await AsyncStorage.setItem(STORAGE_KEYS.ONBOARDING_COMPLETE, 'true'); } catch {}
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.ONBOARDING_COMPLETE, 'true');
+    } catch (e) {
+      // Onboarding will re-appear next launch if this write fails. Not
+      // fatal, but worth reporting so device-class issues (out of
+      // storage, locked profile) are visible.
+      reportError(e, { source: 'OnboardingScreen.handleDone' });
+    }
     onComplete();
   };
 
