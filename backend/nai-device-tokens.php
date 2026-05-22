@@ -134,28 +134,68 @@ function nai_register_device_permission(WP_REST_Request $request) {
     }
 
     $ip = nai_client_ip();
-    $rate_key = 'nai_rl_' . md5($ip);
-    $count = (int)get_transient($rate_key);
-    if ($count >= 30) {
-        return new WP_Error('nai_rate_limited', 'Too many registrations from this IP', array('status' => 429));
+
+    // First gate: a cheap "unauthenticated abuse" counter. Anyone hitting the
+    // endpoint at all costs against this; legitimate signed traffic also
+    // counts but at a much higher ceiling, so a single school behind one NAT
+    // IP can still re-register every device. The hard cutoff prevents an
+    // attacker from indefinitely holding that quota open by adding hits.
+    $abuse_key = 'nai_rl_abuse_' . md5($ip);
+    $abuse_count = (int)get_transient($abuse_key);
+    if ($abuse_count >= 300) {
+        return new WP_Error('nai_rate_limited', 'Too many requests from this IP', array('status' => 429));
     }
-    set_transient($rate_key, $count + 1, HOUR_IN_SECONDS);
 
     $sig  = $request->get_header('x-nai-signature');
     $tsh  = $request->get_header('x-nai-timestamp');
     $body = $request->get_body();
 
+    // Increment the abuse counter only when the request looks unsigned or
+    // signed-but-invalid. Valid signed requests do not consume this budget.
+    $bump_abuse = function () use ($abuse_key, $abuse_count) {
+        // Preserve TTL of the existing transient so a sustained attacker
+        // can't keep the window open by re-priming it. We can't read the
+        // remaining TTL portably across object-cache backends, so we
+        // re-set with HOUR_IN_SECONDS only on first hit.
+        if ($abuse_count === 0) {
+            set_transient($abuse_key, 1, HOUR_IN_SECONDS);
+        } else {
+            // Best-effort increment that does not extend TTL on backends
+            // where wp_cache_incr is available; falls back to a no-extend
+            // set on plain-DB transients.
+            wp_cache_incr($abuse_key, 1, 'transient');
+            set_transient($abuse_key, $abuse_count + 1, false);
+        }
+    };
+
     if (!$sig || !$tsh) {
+        $bump_abuse();
         return new WP_Error('nai_unsigned', 'Missing signature headers', array('status' => 401));
     }
     $ts = (int)$tsh;
     if ($ts <= 0 || abs(time() - $ts) > 300) {
+        $bump_abuse();
         return new WP_Error('nai_stale', 'Stale or invalid timestamp', array('status' => 401));
     }
 
     $expected = hash_hmac('sha256', $ts . '.' . $body, NAI_DEVICE_TOKEN_SECRET);
     if (!hash_equals($expected, strtolower($sig))) {
+        $bump_abuse();
         return new WP_Error('nai_bad_sig', 'Bad signature', array('status' => 401));
+    }
+
+    // Signed, fresh, valid — apply a much looser per-IP cap so a campus
+    // behind one NAT can still register every device, while one runaway
+    // client can't spam millions of inserts.
+    $signed_key = 'nai_rl_signed_' . md5($ip);
+    $signed_count = (int)get_transient($signed_key);
+    if ($signed_count >= 600) {
+        return new WP_Error('nai_rate_limited', 'Too many registrations from this IP', array('status' => 429));
+    }
+    if ($signed_count === 0) {
+        set_transient($signed_key, 1, HOUR_IN_SECONDS);
+    } else {
+        set_transient($signed_key, $signed_count + 1, false);
     }
     return true;
 }
