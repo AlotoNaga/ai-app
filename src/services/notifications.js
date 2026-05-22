@@ -208,31 +208,43 @@ async function getNativePushToken() {
   return { data: t.data, type: t.type || 'fcm' };
 }
 
-export async function registerForPushNotifications() {
-  if (!Device.isDevice) return null;
+// Dedup guard. App.js can call registerForPushNotifications() twice in close
+// succession on first launch — once on cold-start when onboarding is already
+// complete, once again from the AppState foreground listener. Server-side
+// debounce hides the duplicate, but the redundant permission prompt + token
+// fetch + retry burn is wasteful. A module-level promise tracks the
+// in-flight registration so concurrent callers all await the same one.
+let _registerInFlight = null;
 
-  const { status: existing } = await Notifications.getPermissionsAsync();
-  let finalStatus = existing;
-  if (existing !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync({
-      ios: { allowAlert: true, allowBadge: true, allowSound: true },
-    });
-    finalStatus = status;
-  }
-  if (finalStatus !== 'granted') return null;
+export function registerForPushNotifications() {
+  if (_registerInFlight) return _registerInFlight;
+  _registerInFlight = (async () => {
+    if (!Device.isDevice) return null;
 
-  try {
-    const tokenData = await getNativePushToken();
-    // Mark TOKEN_REGISTERED false up front so a backend failure here is
-    // visible to refreshTokenIfNeeded() on the next foreground event.
-    await AsyncStorage.setItem(STORAGE_KEYS.PUSH_TOKEN, tokenData.data);
-    await AsyncStorage.setItem(STORAGE_KEYS.TOKEN_REGISTERED, 'false');
-    await sendTokenToBackend(tokenData.data, tokenData.type);
-    return tokenData.data;
-  } catch (e) {
-    console.warn('Push token error:', e?.message || e);
-    return null;
-  }
+    const { status: existing } = await Notifications.getPermissionsAsync();
+    let finalStatus = existing;
+    if (existing !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync({
+        ios: { allowAlert: true, allowBadge: true, allowSound: true },
+      });
+      finalStatus = status;
+    }
+    if (finalStatus !== 'granted') return null;
+
+    try {
+      const tokenData = await getNativePushToken();
+      // Mark TOKEN_REGISTERED false up front so a backend failure here is
+      // visible to refreshTokenIfNeeded() on the next foreground event.
+      await AsyncStorage.setItem(STORAGE_KEYS.PUSH_TOKEN, tokenData.data);
+      await AsyncStorage.setItem(STORAGE_KEYS.TOKEN_REGISTERED, 'false');
+      await sendTokenToBackend(tokenData.data, tokenData.type);
+      return tokenData.data;
+    } catch (e) {
+      console.warn('Push token error:', e?.message || e);
+      return null;
+    }
+  })().finally(() => { _registerInFlight = null; });
+  return _registerInFlight;
 }
 
 async function sendTokenToBackend(token, tokenType, attempt = 1) {
