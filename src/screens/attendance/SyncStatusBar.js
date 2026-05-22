@@ -13,7 +13,7 @@
 //   • All synced              — soft confirmation
 // ============================================================
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import NetInfo from '@react-native-community/netinfo';
@@ -40,9 +40,20 @@ export default function SyncStatusBar() {
   const [running, setRunning] = useState(isRunning());
   const [lastSyncAt, setLastSyncAt] = useState(null);
 
+  // Guard against setState-after-unmount. The teacher can back out of the
+  // attendance screen while an in-flight pendingSyncCount() query or the
+  // onSyncChange listener is mid-callback — without this, RN logs the
+  // 'can't update an unmounted component' warning.
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
   const refreshPending = useCallback(async () => {
     try {
       const [p, d] = await Promise.all([pendingSyncCount(), deadLetteredSyncCount()]);
+      if (!mountedRef.current) return;
       setPending(p);
       setStuck(d);
     } catch {}
@@ -73,16 +84,20 @@ export default function SyncStatusBar() {
   useEffect(() => {
     refreshPending();
     const unsubNet = NetInfo.addEventListener((state) => {
+      if (!mountedRef.current) return;
       setOnline(!!state.isConnected && state.isInternetReachable !== false);
     });
     const unsubSync = onSyncChange((result) => {
+      if (!mountedRef.current) return;
       setRunning(isRunning());
       if (result?.at) setLastSyncAt(result.at);
       refreshPending();
     });
     // Bumps "running" while a drain is in progress; the change listener
     // covers transitions but not the in-flight start, so poll briefly.
-    const tick = setInterval(() => setRunning(isRunning()), 1000);
+    const tick = setInterval(() => {
+      if (mountedRef.current) setRunning(isRunning());
+    }, 1000);
     return () => { unsubNet(); unsubSync(); clearInterval(tick); };
   }, [refreshPending]);
 
