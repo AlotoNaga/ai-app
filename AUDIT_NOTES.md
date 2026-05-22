@@ -1,7 +1,51 @@
-# AUDIT_NOTES.md — What this v1.2.0 audit found and fixed
+# AUDIT_NOTES.md — Audit history
 
-This document records the production-readiness audit done after the
-initial v1.2.0 rename, and the additional fixes applied as a result.
+This file records what each audit pass found and fixed. Latest pass on
+top.
+
+---
+
+## v1.2.1 — Production-readiness audit pass
+
+A second, deeper audit followed v1.2.0 covering both the mobile app and
+the WordPress backend. Findings were graded Critical / High / Medium /
+Low and each landed as a separate commit on the
+`claude/amazing-maxwell-ZX93t` branch. Full per-fix details with audit
+IDs and UX notes live in `CHANGELOG.md`. The headline themes:
+
+- **Security**: WebView `javascript:` URLs are now refused; the
+  backend `/register-device` rate limiter no longer punishes
+  legitimate signed traffic; server-side WordPress sessions are
+  revoked on Driver / Teacher logout instead of just locally
+  deleted.
+- **Reliability**: GPS pings buffer in a bounded offline queue when
+  the bus enters a dead zone and drain automatically when
+  connectivity returns. RosterScreen surfaces real load errors with
+  a Retry button instead of pretending the class is empty.
+- **Production architecture**: a single `crashReporter` module is
+  the integration point for unhandled errors and the
+  `ErrorBoundary` — plugging in Sentry / Bugsnag later is now a
+  one-file change.
+- **Apple review**: `APPLE_REVIEW_NOTES.md` was restructured with
+  explicit demo-credential placeholders and a pre-submission
+  checklist so the first submission isn't auto-rejected on
+  Guideline 2.1.
+- **Build safety**: `app.config.js` refuses production builds while
+  any `REPLACE_*` placeholder remains in `app.json` or `eas.json`.
+- **Dependencies**: added the missing `expo-font` peer of
+  `@expo/vector-icons` that would otherwise have crashed native
+  builds.
+- **Repo**: switched from a tracked zip to a normal source tree —
+  `npm install` + `expo start --dev-client` now Just Works after a
+  fresh clone.
+
+Counts: **5 Critical, 9 High, 13 Medium**, plus six Low / polish
+items. Remaining Lows are cosmetic and listed in the plan file as
+intentionally not fixed.
+
+---
+
+## v1.2.0 — SDK 54 migration audit
 
 ## File parity
 

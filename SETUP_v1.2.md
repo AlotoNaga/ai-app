@@ -1,7 +1,11 @@
-# SETUP_v1.2.md — Nagaland AI Setup, Step by Step
+# SETUP_v1.2.md — Nagaland AI Setup, Step by Step (v1.2.1)
 
 Read this from top to bottom. Do not skip steps. Every command goes in
 Terminal on your MacBook unless it says otherwise.
+
+**v1.2.1 changes from v1.2.0** — the production-readiness audit pass.
+See `CHANGELOG.md` for the full list. The setup flow is the same; this
+file is updated where the audit changed something you'll touch.
 
 ---
 
@@ -85,23 +89,26 @@ You also need:
 
 ---
 
-## 2. Unpack v1.2.0 and install
+## 2. Clone the repo and install
+
+The v1.2.1 repo is a normal Git source tree — no more zip files. The
+zip-based workflow was what caused the SDK 52 / SDK 54 conflict you ran
+into.
 
 ```bash
-# 1. Unzip the new v1.2.0 ZIP to your Desktop
+# 1. Clone (or pull) the repo
 cd ~/Desktop
-unzip nagaland-ai-app-v1.2.0.zip
-cd nagaland-ai-app-v1.2.0
+rm -rf nagaland-ai-app-v1.2.0 nagaland-me-app-v1.1.0  # delete the broken folders
+git clone <your-github-url> nagaland-ai
+cd nagaland-ai
 
-# 2. Install dependencies (--legacy-peer-deps is needed because
-#    @react-native-firebase v23 still has some old peer dep declarations)
+# 2. Install dependencies. --legacy-peer-deps is needed because
+#    @react-native-firebase v23 still has some old peer dep declarations.
+#    The committed package-lock.json guarantees the exact same tree
+#    your EAS build will use.
 npm install --legacy-peer-deps
 
-# 3. Make sure every package is at the exact version SDK 54 expects.
-#    This is the step you were missing in v1.1.0.
-npx expo install --fix
-
-# 4. Run Expo Doctor — it should report 17/17 checks passed (or close)
+# 3. Sanity-check: Expo Doctor should report green across the board.
 npx expo-doctor
 ```
 
@@ -113,6 +120,10 @@ npx expo install <package-name>
 
 That installs the exact version Expo SDK 54 wants. Do NOT use `npm install`
 for Expo packages — it ignores SDK pinning.
+
+If you see a warning about `expo-font` missing as a peer of
+`@expo/vector-icons`, you're on an older checkout — pull the latest
+v1.2.1 (it's already in `package.json`).
 
 ---
 
@@ -184,6 +195,12 @@ After this completes, open `app.json` and confirm that
 `extra.eas.projectId` has a long ID (looks like `abc123de-...`) instead of
 `REPLACE_AFTER_FIRST_EAS_BUILD_INIT`.
 
+**v1.2.1 safety net:** if you forget this step, `app.config.js` now
+refuses to produce a production build while any `REPLACE_*` placeholder
+remains in `app.json` or `eas.json`. You'll get a clear error pointing
+at the exact field. Local and preview builds only warn so you can
+iterate before running `eas init`.
+
 ---
 
 ## 6. Create the device token secret
@@ -220,6 +237,32 @@ eas secret:list
 
 Without this, push notifications will silently fail in production. Every
 register-device request from the app will get a 401 from the backend.
+
+---
+
+## 6b. Optional: enable Sentry crash reporting
+
+v1.2.1 wires a centralized crash reporter
+(`src/services/crashReporter.js`) that today falls back to
+`console.error`. To turn on a real backend:
+
+```bash
+# 1. Create a Sentry project at https://sentry.io (free tier is fine)
+#    Copy the DSN it gives you (looks like https://abc123@o12345.ingest.sentry.io/67890).
+
+# 2. Tell EAS about it
+eas secret:create --name SENTRY_DSN --value 'https://abc123@...'
+
+# 3. Install the SDK
+npx expo install @sentry/react-native
+
+# 4. Open src/services/crashReporter.js and replace the body of
+#    initBackend(dsn) with the snippet shown in that file's header
+#    comment (it's already documented inline).
+```
+
+If you don't do this now, the app still works — failures just log to
+the device console. The wiring is in place for the day you do.
 
 ---
 
@@ -278,10 +321,13 @@ Same 15–25 minute wait. The output is a `.apk` file.
 
 ```bash
 # In the project folder
-npx expo start
+npx expo start --dev-client
 ```
 
-You see the familiar QR code in Terminal.
+You see the familiar QR code in Terminal. The `--dev-client` flag tells
+Metro this build expects a dev client, not Expo Go — without it the QR
+code defaults to opening in Expo Go and you get the SDK mismatch error
+all over again.
 
 - **iOS**: Open the Camera app, scan the QR code → it asks to open in
   "Nagaland AI" (your dev client, not Expo Go).
@@ -335,6 +381,26 @@ The `--clear` wipes Metro's bundler cache.
 
 Shake your iPhone (or Cmd+D in iOS simulator, Cmd+M in Android emulator)
 to open the dev menu → "Reload".
+
+---
+
+### Apple submission rejected with "missing test credentials"
+
+v1.2.1 strengthened `APPLE_REVIEW_NOTES.md` for exactly this. Before
+submitting:
+
+1. Open `APPLE_REVIEW_NOTES.md` and fill in every `<FILL IN>` marker
+   with a real demo username / password / parent code for each gated
+   path (Schools, Driver Mode, Attendance).
+2. Create those accounts on the `schools.nagalandai.com` admin panel
+   first.
+3. Paste the entire filled-in file into App Store Connect → App Review
+   Information → **Notes** (reviewer-only field; not public).
+4. After approval, rotate the demo passwords.
+
+Apple Guideline 2.1 explicitly requires functional credentials in the
+notes — "contact us" is a guaranteed rejection. This was the single
+most likely first-submission failure mode in v1.2.0.
 
 ---
 
@@ -392,3 +458,31 @@ When something fails, send these THREE things in one message:
 That's enough information to diagnose 95% of problems on the first try.
 Don't iterate on error after error like with v1.1.0 — send the full
 context once and we'll fix it in one step.
+
+---
+
+## 13. Daily development cheat sheet (after one-time setup)
+
+```bash
+# Start the dev server
+npx expo start --dev-client
+
+# Stop the server
+# Press Ctrl+C in the terminal where it's running
+
+# Clear Metro cache (when hot reload gets confused)
+npx expo start --dev-client --clear
+
+# Rebuild the dev client (needed only when you add a NEW native module,
+# i.e. change package.json dependencies that compile to native code)
+npm run build:dev:ios
+npm run build:dev:android
+
+# Production build + submit
+npm run build:ios    && npm run submit:ios
+npm run build:android && npm run submit:android
+```
+
+You almost never need to rebuild the dev client. JS-only changes hot-
+reload through Metro. Rebuild only when you add/remove a native
+package (anything in `package.json` that has its own iOS/Android code).
