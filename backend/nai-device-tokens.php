@@ -215,21 +215,34 @@ function nai_register_device_token(WP_REST_Request $request) {
         $platform
     );
 
-    if (empty($token) || !$token_type) {
-        return new WP_REST_Response(array('success' => false, 'message' => 'Invalid token'), 400);
-    }
-    if (!nai_token_format_ok($token, $token_type)) {
-        return new WP_REST_Response(array('success' => false, 'message' => 'Token format mismatch for ' . $token_type), 400);
-    }
-
     $device_model = mb_substr(sanitize_text_field($request->get_param('device_model') ?: ''), 0, 100);
     $os_version   = mb_substr(sanitize_text_field($request->get_param('os_version')   ?: ''), 0, 20);
     $app_version  = mb_substr(sanitize_text_field($request->get_param('app_version')  ?: '1.0.0'), 0, 20);
 
+    if (empty($token) || !$token_type) {
+        error_log(sprintf('[nai] register-device 400 invalid-token: platform=%s model=%s os=%s app=%s',
+            $platform, $device_model, $os_version, $app_version));
+        return new WP_REST_Response(array('success' => false, 'message' => 'Invalid token'), 400);
+    }
+    if (!nai_token_format_ok($token, $token_type)) {
+        // Log every format rejection with device metadata so a regression in
+        // either platform (eg. Apple changing APNs token shape, FCM tweaking
+        // delimiters) is diagnosable instead of silent.
+        error_log(sprintf('[nai] register-device 400 format-mismatch: type=%s platform=%s len=%d model=%s os=%s app=%s',
+            $token_type, $platform, strlen($token), $device_model, $os_version, $app_version));
+        return new WP_REST_Response(array('success' => false, 'message' => 'Token format mismatch for ' . $token_type), 400);
+    }
+
     $user_id = get_current_user_id() ?: null;
 
-    // Per-token debounce — ignore re-registration of the same token <60s apart
-    $debounce_key = 'nai_tok_' . md5($token);
+    // Per-token debounce — ignore re-registration of the same token only when
+    // the metadata is byte-identical to what we last saw. A token rotation
+    // that arrives within 60s of a previous register with different
+    // device_model / os_version / app_version is NOT a duplicate and must be
+    // written, otherwise we'd silently drop the new metadata and the device
+    // would look stuck on the old install for an hour.
+    $debounce_fp = md5($token . '|' . $platform . '|' . $device_model . '|' . $os_version . '|' . $app_version);
+    $debounce_key = 'nai_tok_' . $debounce_fp;
     if (get_transient($debounce_key)) {
         return new WP_REST_Response(array('success' => true, 'message' => 'Debounced'), 200);
     }
