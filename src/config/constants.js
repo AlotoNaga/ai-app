@@ -152,8 +152,6 @@ export const URLS = {
   news: 'https://nagalandnewstoday.com',
   // Backend endpoints
   tokenRegister: 'https://nagalandai.com/wp-json/nai/v1/register-device',
-  busBase: 'https://schools.nagalandai.com/wp-admin/admin-ajax.php',
-  busPing: 'https://schools.nagalandai.com/wp-json/nais/v1/bus/ping',
 };
 
 // ============================================================
@@ -172,12 +170,19 @@ export const URLS = {
 // If the plugin uses different action names, change ONLY this block.
 // Nothing else in the app hardcodes them.
 // ============================================================
-export const ATTENDANCE_API = {
-  // WordPress base — used for cookie-auth login (same as Driver Mode).
-  origin: 'https://schools.nagalandai.com',
-  loginUrl: 'https://schools.nagalandai.com/wp-login.php',
-  ajaxUrl:  'https://schools.nagalandai.com/wp-admin/admin-ajax.php',
+// Shared WordPress host that Driver Mode and Attendance both authenticate
+// against. Splitting it out so the URLs live in exactly one place — drift
+// between Driver and Attendance was a real bug.
+export const SCHOOLS_WP = {
+  origin:    'https://schools.nagalandai.com',
+  loginUrl:  'https://schools.nagalandai.com/wp-login.php',
+  logoutUrl: 'https://schools.nagalandai.com/wp-login.php?action=logout',
+  ajaxUrl:   'https://schools.nagalandai.com/wp-admin/admin-ajax.php',
+  adminUrl:  'https://schools.nagalandai.com/wp-admin/',
+};
 
+export const ATTENDANCE_API = {
+  ...SCHOOLS_WP,
   // admin-ajax.php action names. POST x-www-form-urlencoded with
   // `action` + `nonce` + the per-endpoint fields documented in
   // SERVER_CONTRACT.md.
@@ -186,6 +191,17 @@ export const ATTENDANCE_API = {
     getMyClasses: 'nais_teacher_get_my_classes',     // POST — list classes + students + subjects
     submit:       'nais_teacher_submit_attendance',  // POST — batch submit (idempotent on client_id)
     todayStatus:  'nais_teacher_attendance_today',   // POST — prefill existing entries (optional)
+  },
+};
+
+export const DRIVER_API = {
+  ...SCHOOLS_WP,
+  pingUrl: 'https://schools.nagalandai.com/wp-json/nais/v1/bus/ping',
+  actions: {
+    getNonce:   'nais_get_nonce',
+    getMyBus:   'nais_driver_get_my_bus',
+    startTrip:  'nais_driver_start_trip',
+    endTrip:    'nais_driver_end_trip',
   },
 };
 

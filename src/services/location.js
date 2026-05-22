@@ -2,7 +2,7 @@ import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getSecure } from './secureStorage';
-import { LOCATION_TASK_NAME, URLS, STORAGE_KEYS, APP_VERSION } from '../config/constants';
+import { LOCATION_TASK_NAME, DRIVER_API, STORAGE_KEYS, APP_VERSION } from '../config/constants';
 
 // Background task — runs even when app is backgrounded
 TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
@@ -19,7 +19,7 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
     const headers = { 'Content-Type': 'application/json', 'X-App-Version': APP_VERSION };
     if (cookie) headers['Cookie'] = cookie;
 
-    const resp = await fetch(URLS.busPing, {
+    const resp = await fetch(DRIVER_API.pingUrl, {
       method: 'POST', headers,
       body: JSON.stringify({
         trip_id: tripId,

@@ -7,7 +7,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
-import { COLORS, URLS, STORAGE_KEYS } from '../config/constants';
+import { COLORS, DRIVER_API, STORAGE_KEYS } from '../config/constants';
 import { getSecure, setSecure, deleteSecure } from '../services/secureStorage';
 import {
   requestLocationPermissions, startGpsTracking, stopGpsTracking,
@@ -93,7 +93,7 @@ export default function DriverScreen() {
     body.append('action', action);
     if (n) body.append('nonce', n);
     Object.keys(params).forEach((k) => body.append(k, params[k]));
-    const r = await fetch(URLS.busBase, {
+    const r = await fetch(DRIVER_API.ajaxUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded', Cookie: c || cookie },
       body: body.toString(),
@@ -123,8 +123,8 @@ export default function DriverScreen() {
       // attendanceApi.js. Strict success requires the wordpress_logged_in
       // cookie — the role check via nais_driver_get_my_bus is the second gate.
       const result = await wpLogin({
-        loginUrl: 'https://schools.nagalandai.com/wp-login.php',
-        redirectTo: 'https://schools.nagalandai.com/wp-admin/',
+        loginUrl: DRIVER_API.loginUrl,
+        redirectTo: DRIVER_API.adminUrl,
         username: username.trim(),
         password,
       });
@@ -139,15 +139,15 @@ export default function DriverScreen() {
       setCookie(ac);
 
       const an = await fetchNonce({
-        ajaxUrl: 'https://schools.nagalandai.com/wp-admin/admin-ajax.php',
-        action: 'nais_get_nonce',
+        ajaxUrl: DRIVER_API.ajaxUrl,
+        action: DRIVER_API.actions.getNonce,
         cookieHeader: ac,
       });
       setNonce(an);
 
       let dr;
       try {
-        dr = await callAjax('nais_driver_get_my_bus', {}, ac, an);
+        dr = await callAjax(DRIVER_API.actions.getMyBus, {}, ac, an);
       } catch {
         setState(S.LOGIN);
         setLoginError('Could not verify your account. Try again.');
@@ -195,7 +195,7 @@ export default function DriverScreen() {
       }
       let r;
       try {
-        r = await callAjax('nais_driver_start_trip', {}, cookie, nonce);
+        r = await callAjax(DRIVER_API.actions.startTrip, {}, cookie, nonce);
       } catch (e) {
         // Surface session-expiry / network errors with a useful message
         // instead of falling through to the generic outer catch.
@@ -236,7 +236,7 @@ export default function DriverScreen() {
           setState(S.STOPPING);
           try {
             await stopGpsTracking();
-            await callAjax('nais_driver_end_trip', { trip_id: tripId }, cookie, nonce);
+            await callAjax(DRIVER_API.actions.endTrip, { trip_id: tripId }, cookie, nonce);
           } catch {
             await stopGpsTracking();
           }
