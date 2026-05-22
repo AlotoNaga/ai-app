@@ -15,10 +15,12 @@
       },
       "env": {
         "APP_ENV": "development",
-        "DEVICE_TOKEN_SECRET": "$DEVICE_TOKEN_SECRET"
+        "DEVICE_TOKEN_SECRET": "$DEVICE_TOKEN_SECRET",
+        "SENTRY_DSN": "$SENTRY_DSN"
       }
     },
     "preview": {
+      "autoIncrement": true,
       "distribution": "internal",
       "android": {
         "buildType": "apk"
@@ -28,7 +30,8 @@
       },
       "env": {
         "APP_ENV": "preview",
-        "DEVICE_TOKEN_SECRET": "$DEVICE_TOKEN_SECRET"
+        "DEVICE_TOKEN_SECRET": "$DEVICE_TOKEN_SECRET",
+        "SENTRY_DSN": "$SENTRY_DSN"
       }
     },
     "production": {
@@ -38,7 +41,8 @@
       },
       "env": {
         "APP_ENV": "production",
-        "DEVICE_TOKEN_SECRET": "$DEVICE_TOKEN_SECRET"
+        "DEVICE_TOKEN_SECRET": "$DEVICE_TOKEN_SECRET",
+        "SENTRY_DSN": "$SENTRY_DSN"
       }
     }
   },
