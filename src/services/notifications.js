@@ -27,8 +27,10 @@ const DEVICE_TOKEN_SECRET =
 // Logged once at module load. Without a secret, every register-device call
 // will be rejected by the backend with 401 'nai_unsigned' and silently fail
 // after three retries — and the dev/QA tester would have no idea why pushes
-// don't arrive. Surface it as a hard warning at startup instead.
-if (!DEVICE_TOKEN_SECRET) {
+// don't arrive. Surface it as a hard warning at startup instead. Dev only —
+// production builds without a secret would have failed app.config.js's
+// EAS_BUILD guard, so this noise only matters in local development.
+if (__DEV__ && !DEVICE_TOKEN_SECRET) {
   console.error(
     '[notifications] DEVICE_TOKEN_SECRET is empty. Push token registration ' +
     'will fail. Set it via EAS secrets and reference it in eas.json env.'

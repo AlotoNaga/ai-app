@@ -28,7 +28,12 @@
         "NSLocationAlwaysUsageDescription": "Nagaland AI needs background location access for school bus tracking.",
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": ["remote-notification", "location"],
-        "LSApplicationQueriesSchemes": ["whatsapp", "tel", "mailto", "upi", "razorpay"]
+        "LSApplicationQueriesSchemes": [
+          "whatsapp", "tel", "mailto",
+          "upi", "razorpay", "paytm", "gpay", "phonepe",
+          "itms-apps", "itms-appss",
+          "maps", "comgooglemaps"
+        ]
       },
       "config": {
         "usesNonExemptEncryption": false

@@ -480,7 +480,12 @@ function nai_get_firebase_access_token() {
         set_transient('nai_firebase_access_token', $data['access_token'], 3000);
         return $data['access_token'];
     }
-    error_log('[nai] OAuth response missing access_token: ' . wp_remote_retrieve_body($resp));
+    // Log only the OAuth error code, not the full body — Google sometimes
+    // includes the service-account email in the response and we don't want
+    // PII landing in server logs.
+    $err_code = isset($data['error']) ? $data['error'] : 'unknown';
+    $err_desc = isset($data['error_description']) ? $data['error_description'] : '';
+    error_log('[nai] OAuth response missing access_token: ' . $err_code . ' ' . $err_desc);
     return false;
 }
 

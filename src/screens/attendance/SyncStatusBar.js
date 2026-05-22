@@ -93,17 +93,18 @@ export default function SyncStatusBar() {
       if (result?.at) setLastSyncAt(result.at);
       refreshPending();
     });
-    // Bumps "running" while a drain is in progress; the change listener
-    // covers transitions but not the in-flight start, so poll briefly.
-    const tick = setInterval(() => {
-      if (mountedRef.current) setRunning(isRunning());
-    }, 1000);
-    return () => { unsubNet(); unsubSync(); clearInterval(tick); };
+    return () => { unsubNet(); unsubSync(); };
   }, [refreshPending]);
 
+  // Synchronously flip the "Syncing…" label the instant the user taps Sync
+  // Now — onSyncChange only fires on completion, so without this the pill
+  // would stay on the previous state for up to the duration of the sync.
   const onPressSync = useCallback(() => {
     if (!online || running) return;
-    syncNow().catch(() => {});
+    setRunning(true);
+    syncNow()
+      .catch(() => {})
+      .finally(() => { if (mountedRef.current) setRunning(isRunning()); });
   }, [online, running]);
 
   // ----- Composition -------------------------------------------------------
