@@ -13,7 +13,7 @@ import {
   requestLocationPermissions, startGpsTracking, stopGpsTracking,
   isGpsTracking, getLastKnownLocation,
 } from '../services/location';
-import { wpLogin, fetchNonce } from '../services/wpAuth';
+import { wpLogin, fetchNonce, wpLogout } from '../services/wpAuth';
 
 const S = {
   LOGIN: 'login', LOADING: 'loading', NOT_DRIVER: 'not_driver',
@@ -253,6 +253,10 @@ export default function DriverScreen() {
       Alert.alert('Trip Active', 'End the trip before logging out.');
       return;
     }
+    // Server-side revoke first (best-effort) so a captured cookie can't keep
+    // working after the user thinks they logged out. We don't await-throw on
+    // failure — local logout proceeds regardless of server reachability.
+    wpLogout({ logoutUrl: DRIVER_API.logoutUrl, cookieHeader: cookie, nonce }).catch(() => {});
     await deleteSecure(STORAGE_KEYS.DRIVER_SESSION);
     await deleteSecure(STORAGE_KEYS.DRIVER_COOKIE);
     await AsyncStorage.multiRemove([

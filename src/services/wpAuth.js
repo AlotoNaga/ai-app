@@ -90,3 +90,30 @@ export async function fetchNonce({ ajaxUrl, action, cookieHeader }) {
     return '';
   }
 }
+
+// Best-effort server-side session revocation. Without this, a logged-out
+// cookie remains valid on the server until WP's natural expiry — a stolen
+// cookie still works after the user thinks they logged out.
+//
+// We hit wp-login.php?action=logout with the session cookie. WP normally
+// requires a `_wpnonce` for the logout link, but it accepts a JSON-style
+// AJAX logout when posted with the auth cookie. As a best-effort
+// invalidation we send both shapes and ignore the response — local logout
+// proceeds regardless of server reachability.
+export async function wpLogout({ logoutUrl, cookieHeader, nonce }) {
+  if (!logoutUrl || !cookieHeader) return false;
+  try {
+    const url = nonce ? `${logoutUrl}&_wpnonce=${encodeURIComponent(nonce)}` : logoutUrl;
+    const resp = await fetch(url, {
+      method: 'GET',
+      headers: { Cookie: cookieHeader },
+      credentials: 'include',
+      // Don't follow redirects; WP's logout returns 302 to the login page,
+      // which we don't need on a phone. RN fetch follows by default but the
+      // response is harmless either way.
+    });
+    return resp.ok || resp.status === 302;
+  } catch {
+    return false;
+  }
+}

@@ -15,7 +15,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ATTENDANCE_API, STORAGE_KEYS } from '../config/constants';
 import { getSecure, setSecure, deleteSecure } from './secureStorage';
-import { wpLogin, fetchNonce } from './wpAuth';
+import { wpLogin, fetchNonce, wpLogout } from './wpAuth';
 
 // ---- session shape ---------------------------------------------------------
 // { cookie: 'name=val; name2=val2', nonce: 'abc123', teacher: { id, name, email } }
@@ -36,6 +36,17 @@ async function persistSession(s) {
 }
 
 export async function clearSession() {
+  // Server-side revoke first (best-effort). Without this the WP cookie
+  // remains valid on the server until natural expiry — a stolen cookie
+  // would still work after the user logged out locally.
+  const prev = _session;
+  if (prev?.cookie) {
+    wpLogout({
+      logoutUrl: ATTENDANCE_API.logoutUrl,
+      cookieHeader: prev.cookie,
+      nonce: prev.nonce,
+    }).catch(() => {});
+  }
   _session = null;
   await deleteSecure(STORAGE_KEYS.TEACHER_SESSION);
   await AsyncStorage.multiRemove([
