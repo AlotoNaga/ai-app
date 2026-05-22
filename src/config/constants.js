@@ -5,7 +5,7 @@
 // Switch via the 9-dot "Apps" grid icon in the header (Option A).
 // ============================================================
 
-export const APP_VERSION = '1.2.0';
+export const APP_VERSION = '1.2.1';
 
 export const COLORS = {
   primary: '#10B981',

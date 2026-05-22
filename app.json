@@ -2,7 +2,7 @@
   "expo": {
     "name": "Nagaland AI",
     "slug": "nagaland-ai",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -17,7 +17,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nagalandme.nagalandai",
-      "buildNumber": "3",
+      "buildNumber": "4",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "NSCameraUsageDescription": "Nagaland AI needs camera access for uploading photos to the AI chat and expert profiles.",
@@ -53,7 +53,7 @@
         "backgroundColor": "#0F2419"
       },
       "package": "com.nagalandme.nagalandai",
-      "versionCode": 3,
+      "versionCode": 4,
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "INTERNET",
