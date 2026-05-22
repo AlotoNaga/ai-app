@@ -62,16 +62,22 @@ export default function ClassPicker({ teacher, onPick, onSignOut, onSessionExpir
     }
   }, [loadFromDisk, onSessionExpired]);
 
+  // First-mount only. The previous effect depended on \`refreshFromServer\`,
+  // whose identity flipped on every parent re-render (it closes over
+  // \`onSessionExpired\` from props), so the effect re-ran the SQLite load
+  // and freshness check on every parent render.
   useEffect(() => {
-    loadFromDisk();
-    // First-load auto refresh — only if the cache is stale (older than 12h)
-    // or empty. Avoids a needless network call on every sign-in.
+    let cancelled = false;
     (async () => {
+      await loadFromDisk();
+      if (cancelled) return;
       const ts = await rosterFreshness();
       const stale = !ts || (Date.now() - ts) > 12 * 60 * 60 * 1000;
-      if (stale) refreshFromServer();
+      if (!cancelled && stale) refreshFromServer();
     })();
-  }, [loadFromDisk, refreshFromServer]);
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const confirmSignOut = () => {
     Alert.alert(
