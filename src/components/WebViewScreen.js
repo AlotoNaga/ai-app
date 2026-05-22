@@ -207,7 +207,7 @@ export default function WebViewScreen({ url, onNavigationStateChange }) {
         contentInsetAdjustmentBehavior="automatic"
         automaticallyAdjustContentInsets={false}
         keyboardDisplayRequiresUserAction={false}
-        dataDetectorTypes="none"
+        dataDetectorTypes={['phoneNumber', 'link']}
         decelerationRate="normal"
         overScrollMode="never"
         androidLayerType="hardware"
