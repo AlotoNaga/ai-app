@@ -416,15 +416,34 @@ function nai_send_push($device_token, $channel, $title, $body, $data = array(), 
 // ---------------------------------------------------------------------------
 // FCM OAuth — service-account JWT signed with RS256, base64url everywhere.
 // ---------------------------------------------------------------------------
+
+/**
+ * Per-request cache for the parsed service-account JSON.
+ * Avoids re-reading + re-parsing the credentials file once per recipient
+ * when a single notification fan-out call sends to N devices.
+ * SECURITY NOTE: NAI_FIREBASE_CREDENTIALS must point to a file outside
+ * the web root and chmod 600 — anything in ABSPATH risks accidental
+ * public exposure.
+ */
+function nai_firebase_credentials() {
+    static $cached = null;
+    static $checked = false;
+    if ($checked) return $cached;
+    $checked = true;
+    $path = defined('NAI_FIREBASE_CREDENTIALS') ? NAI_FIREBASE_CREDENTIALS : ABSPATH . 'firebase-credentials.json';
+    if (!file_exists($path)) return null;
+    $cred = json_decode(file_get_contents($path), true);
+    if (!$cred || empty($cred['client_email']) || empty($cred['private_key'])) return null;
+    $cached = $cred;
+    return $cached;
+}
+
 function nai_get_firebase_access_token() {
     $cached = get_transient('nai_firebase_access_token');
     if ($cached) return $cached;
 
-    $path = defined('NAI_FIREBASE_CREDENTIALS') ? NAI_FIREBASE_CREDENTIALS : ABSPATH . 'firebase-credentials.json';
-    if (!file_exists($path)) return false;
-
-    $cred = json_decode(file_get_contents($path), true);
-    if (!$cred || empty($cred['client_email']) || empty($cred['private_key'])) return false;
+    $cred = nai_firebase_credentials();
+    if (!$cred) return false;
 
     $now    = time();
     $header = nai_b64url_encode(wp_json_encode(array('alg' => 'RS256', 'typ' => 'JWT')));
@@ -468,9 +487,7 @@ function nai_get_firebase_access_token() {
 function nai_get_firebase_project_id() {
     $cached = get_option('nai_firebase_project_id');
     if ($cached) return $cached;
-    $path = defined('NAI_FIREBASE_CREDENTIALS') ? NAI_FIREBASE_CREDENTIALS : ABSPATH . 'firebase-credentials.json';
-    if (!file_exists($path)) return false;
-    $cred = json_decode(file_get_contents($path), true);
+    $cred = nai_firebase_credentials();
     if (!empty($cred['project_id'])) {
         update_option('nai_firebase_project_id', $cred['project_id']);
         return $cred['project_id'];
