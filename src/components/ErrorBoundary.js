@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, STORAGE_KEYS } from '../config/constants';
+import { reportError } from '../services/crashReporter';
 
 // Volatile keys that commonly carry partial / corrupted state across crashes.
 // Persistent identity (push token, sessions, onboarding flag, prefs) is left
@@ -26,7 +27,11 @@ export default class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, info) {
-    console.error('ErrorBoundary:', error, info?.componentStack || info);
+    reportError(error, {
+      source: 'ErrorBoundary',
+      componentStack: info?.componentStack,
+      recoveryCount: this.state.recoveryCount,
+    });
   }
 
   handleRestart = async () => {
@@ -36,7 +41,7 @@ export default class ErrorBoundary extends React.Component {
       // the app again immediately after the user taps Restart.
       await AsyncStorage.multiRemove(RESET_KEYS);
     } catch (e) {
-      console.warn('ErrorBoundary recovery cleanup failed:', e?.message || e);
+      reportError(e, { source: 'ErrorBoundary.handleRestart.cleanup' });
     }
     this.setState((prev) => ({
       hasError: false,

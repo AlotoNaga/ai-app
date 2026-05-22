@@ -88,6 +88,9 @@ module.exports = ({ config }) => {
     extra: {
       ...(base.extra || {}),
       deviceTokenSecret,
+      // Read by src/services/crashReporter.js. Empty string is fine —
+      // the reporter silently uses its console fallback.
+      sentryDsn: process.env.SENTRY_DSN || base.extra?.sentryDsn || '',
     },
   };
 };

@@ -11,6 +11,13 @@ import CustomSplash from './src/components/CustomSplash';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import MainShell from './src/screens/MainShell';
 import { COLORS, STORAGE_KEYS, SITE_BY_KEY, HOME_KEY } from './src/config/constants';
+import { initCrashReporter } from './src/services/crashReporter';
+
+// Wire the crash reporter as early as possible so subsequent module-load
+// errors and async unhandled rejections route through one place. Today this
+// is a console-fallback; plugging in Sentry / Bugsnag later is a one-file
+// change in src/services/crashReporter.js.
+initCrashReporter();
 
 // CRITICAL: Register background GPS task at root level
 import './src/services/location';
