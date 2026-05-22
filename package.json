@@ -1,0 +1,52 @@
+{
+  "name": "nagaland-ai",
+  "version": "1.2.0",
+  "main": "App.js",
+  "scripts": {
+    "start": "expo start",
+    "start:clear": "expo start --clear",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "build:dev:ios": "eas build --platform ios --profile development",
+    "build:dev:android": "eas build --platform android --profile development",
+    "build:preview:ios": "eas build --platform ios --profile preview",
+    "build:preview:android": "eas build --platform android --profile preview",
+    "build:ios": "eas build --platform ios --profile production",
+    "build:android": "eas build --platform android --profile production",
+    "submit:ios": "eas submit --platform ios --profile production",
+    "submit:android": "eas submit --platform android --profile production",
+    "prebuild": "expo prebuild --clean",
+    "doctor": "npx expo-doctor",
+    "fix:deps": "npx expo install --fix"
+  },
+  "dependencies": {
+    "expo": "~54.0.0",
+    "expo-application": "~7.0.8",
+    "expo-build-properties": "~1.0.10",
+    "expo-constants": "~18.0.13",
+    "expo-crypto": "~15.0.7",
+    "expo-device": "~8.0.10",
+    "expo-linking": "~8.0.12",
+    "expo-location": "~19.0.7",
+    "expo-notifications": "~0.32.17",
+    "expo-secure-store": "~15.0.7",
+    "expo-splash-screen": "~31.0.13",
+    "expo-sqlite": "~16.0.9",
+    "expo-status-bar": "~3.0.9",
+    "expo-task-manager": "~14.0.6",
+    "react": "19.1.0",
+    "react-native": "0.81.4",
+    "react-native-webview": "13.16.1",
+    "react-native-safe-area-context": "5.6.1",
+    "@expo/vector-icons": "^15.0.2",
+    "@react-native-community/netinfo": "11.4.1",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-firebase/app": "^23.0.1",
+    "@react-native-firebase/messaging": "^23.0.1",
+    "crypto-js": "^4.2.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2"
+  },
+  "private": true
+}
