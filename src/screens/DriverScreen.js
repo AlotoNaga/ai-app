@@ -11,7 +11,7 @@ import { COLORS, DRIVER_API, STORAGE_KEYS } from '../config/constants';
 import { getSecure, setSecure, deleteSecure } from '../services/secureStorage';
 import {
   requestLocationPermissions, startGpsTracking, stopGpsTracking,
-  isGpsTracking, getLastKnownLocation,
+  isGpsTracking, getLastKnownLocation, getQueuedPingCount,
 } from '../services/location';
 import { wpLogin, fetchNonce, wpLogout } from '../services/wpAuth';
 
@@ -32,6 +32,8 @@ export default function DriverScreen() {
   const [nonce, setNonce]         = useState('');
   const [tripId, setTripId]       = useState(null);
   const [pingCount, setPingCount] = useState(0);
+  const [queuedCount, setQueuedCount] = useState(0);
+  const [pingError, setPingError] = useState('');
   const [speed, setSpeed]         = useState(0);
   const [lastPing, setLastPing]   = useState(null);
   const timerRef = useRef(null);
@@ -42,8 +44,14 @@ export default function DriverScreen() {
   useEffect(() => {
     if (state === S.TRACKING) {
       timerRef.current = setInterval(async () => {
-        const c = await AsyncStorage.getItem(STORAGE_KEYS.PING_COUNT);
+        const [c, err, queued] = await Promise.all([
+          AsyncStorage.getItem(STORAGE_KEYS.PING_COUNT),
+          AsyncStorage.getItem(STORAGE_KEYS.LAST_PING_ERROR),
+          getQueuedPingCount(),
+        ]);
         setPingCount(parseInt(c || '0', 10));
+        setPingError(err || '');
+        setQueuedCount(queued);
         // Read cached last-known position instead of forcing a fresh GPS fix —
         // background tracking already feeds the cache every 30s; an extra 10s
         // fresh fix would double battery drain.
@@ -358,6 +366,18 @@ export default function DriverScreen() {
           <View style={styles.stat}><Text style={styles.statN}>{pingCount}</Text><Text style={styles.statL}>GPS Pings</Text></View>
           <View style={styles.stat}><Text style={styles.statN}>{speed}</Text><Text style={styles.statL}>km/h</Text></View>
         </View>
+        {queuedCount > 0 && (
+          <View style={styles.warnPill}>
+            <Ionicons name="cloud-offline-outline" size={14} color={COLORS.warning} style={{ marginRight: 6 }} />
+            <Text style={styles.warnPillT}>{queuedCount} ping(s) buffered — will send when online</Text>
+          </View>
+        )}
+        {!queuedCount && pingError ? (
+          <View style={[styles.warnPill, { backgroundColor: 'rgba(239,68,68,0.10)', borderColor: 'rgba(239,68,68,0.35)' }]}>
+            <Ionicons name="warning-outline" size={14} color={COLORS.danger} style={{ marginRight: 6 }} />
+            <Text style={[styles.warnPillT, { color: COLORS.danger }]}>Last ping rejected: {pingError}</Text>
+          </View>
+        ) : null}
         {lastPing && <Text style={styles.lastPingT}>Last update: {lastPing.toLocaleTimeString()}</Text>}
         <TouchableOpacity style={styles.endBtn} onPress={handleEnd} activeOpacity={0.7}>
           <Ionicons name="stop-circle" size={24} color="#FFF" style={{ marginRight: 10 }} />
@@ -433,6 +453,8 @@ const styles = StyleSheet.create({
   statN:{ fontSize: 32, fontWeight: '700', color: '#FFF', marginBottom: 4 },
   statL:{ fontSize: 12, color: COLORS.textMuted },
   lastPingT:{ fontSize: 12, color: COLORS.textMuted, marginBottom: 20 },
+  warnPill: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, marginBottom: 12, backgroundColor: 'rgba(245,158,11,0.10)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.35)' },
+  warnPillT: { fontSize: 12, color: COLORS.warning, fontWeight: '600' },
   startBtn:{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.primary, paddingVertical: 16, borderRadius: 14, width: '100%', shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 6 },
   startBtnT:{ color: '#FFF', fontSize: 18, fontWeight: '700' },
   endBtn:{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.danger, paddingVertical: 16, borderRadius: 14, width: '100%', shadowColor: COLORS.danger, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 6 },
